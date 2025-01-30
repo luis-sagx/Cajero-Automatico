@@ -1,124 +1,177 @@
 org 100h
-lea dx, mensajeIngreso
-mov ah, 09h
-int 21h  
-call ingresarNumero
-    
-call calcularNumero
-    
-call saltoLinea        
-lea dx, mensaje
-mov ah, 09h
-int 21h
-call mostrarNumero
-ret
 
-num1 dw 0
-mill db 0
-centenas db 0
-decenas db 0
-unidades db 0 
-mensajeIngreso db 'Ingrese un numero de 4 cifras: $'       
-mensaje db 'El numero es: $'
+inicio:
+    mov ah, 09h
+    lea dx, mensaje
+    int 21h
 
-ingresarNumero PROC
-    call leerDigito
+menu:
+    mov ah, 09h
+    lea dx, opciones
+    int 21h
+    
+    mov ah, 01h
+    int 21h
+    sub al, '0'
+    mov bl, al
+    
+    cmp bl, 1
+    je consultar_saldo
+    cmp bl, 2
+    je deposito
+    cmp bl, 3
+    je retiro
+    cmp bl, 4
+    je salir
+    jmp menu
+
+consultar_saldo:
+    call mostrar_saldo
+    jmp menu
+
+deposito:
+    call realizar_deposito
+    jmp menu
+
+retiro:
+    call realizar_retiro
+    jmp menu
+
+salir:
+    mov ah, 4ch
+    int 21h
+
+mostrar_saldo proc
+    call saltolinea
+    mov ah, 09h
+    lea dx, msg_saldo_actual
+    int 21h
+    call mostrarnumero
+    call saltolinea
+    ret
+mostrar_saldo endp
+
+; procedimiento principal para realizar depÃ³sito
+realizar_deposito proc
+    call saltolinea
+    mov ah, 09h
+    lea dx, mensajeingreso
+    int 21h
+    
+    call ingresarnumero
+    call calcularnumero
+    
+    mov ax, monto
+    add saldo, ax
+    
+    call saltolinea
+    mov ah, 09h
+    lea dx, msg_deposito_exitoso
+    int 21h
+    
+    call saltolinea
+    call mostrar_saldo
+    ret
+realizar_deposito endp
+
+realizar_retiro proc
+    mov ah, 09h
+    lea dx, msg_retiro
+    int 21h
+    ret
+realizar_retiro endp
+
+ingresarnumero proc
+    call leerdigito
     mov mill, al
     
-    call leerDigito
+    call leerdigito
     mov centenas, al
     
-    call leerDigito
+    call leerdigito
     mov decenas, al
     
-    call leerDigito
+    call leerdigito
     mov unidades, al
     
     ret
-ingresarNumero ENDP
+ingresarnumero endp
           
-leerDigito PROC
+leerdigito proc
     mov ah, 1
     int 21h
     sub al, 48    
     ret
-leerDigito ENDP
+leerdigito endp
 
-calcularNumero PROC
-    ; Calcular millares
+; calcula el nÃºmero final a partir de los dÃ­gitos ingresados
+calcularnumero proc
     xor ax, ax
     mov al, mill
     mov bx, 1000
-    mul bx        ; ax = mill * 1000
-    mov bx, ax    ; guardar resultado en bx
+    mul bx
+    mov bx, ax
     
-    ; Agregar centenas
     xor ax, ax
     mov al, centenas
     mov cx, 100
-    mul cx        ; ax = centenas * 100
-    add bx, ax    ; bx += (centenas * 100)
+    mul cx
+    add bx, ax
     
-    ; Agregar decenas
     xor ax, ax
     mov al, decenas
     mov cl, 10
-    mul cl        ; ax = decenas * 10
-    add bx, ax    ; bx += (decenas * 10)
+    mul cl
+    add bx, ax
     
-    ; Agregar unidades
     xor ax, ax
     mov al, unidades
-    add bx, ax    ; bx += unidades
+    add bx, ax
     
-    mov num1, bx  ; guardar resultado final
+    mov monto, bx
     ret
-calcularNumero ENDP
+calcularnumero endp
            
-mostrarNumero PROC
-    mov ax, num1  ; cargar número completo
+mostrarnumero proc
+    mov ax, saldo
     
-    ; Mostrar millar
-    mov dx, 0     ; Limpiar dx para división
+    mov dx, 0
     mov bx, 1000
-    div bx        ; dx:ax / 1000
-    push dx       ; Guardar resto
-    mov dl, al    ; Mover cociente a dl
-    call mostrarDigito
+    div bx
+    push dx
+    mov dl, al
+    call mostrardigito
     
-    ; Mostrar centena
-    pop ax        ; Recuperar resto
-    mov dx, 0     ; Limpiar dx para división
+    pop ax
+    mov dx, 0
     mov bx, 100
-    div bx        ; ax / 100
-    push dx       ; Guardar resto
-    mov dl, al    ; Mover cociente a dl
-    call mostrarDigito
+    div bx
+    push dx
+    mov dl, al
+    call mostrardigito
     
-    ; Mostrar decena
-    pop ax        ; Recuperar resto
-    mov dx, 0     ; Limpiar dx para división
+    pop ax
+    mov dx, 0
     mov bx, 10
-    div bx        ; ax / 10
-    push dx       ; Guardar resto
-    mov dl, al    ; Mover cociente a dl
-    call mostrarDigito
+    div bx
+    push dx
+    mov dl, al
+    call mostrardigito
     
-    ; Mostrar unidad
-    pop dx        ; Recuperar último resto
-    call mostrarDigito
+    pop dx
+    call mostrardigito
     
     ret
-mostrarNumero ENDP
+mostrarnumero endp
        
-mostrarDigito PROC
+mostrardigito proc
     add dl, 48
     mov ah, 2
     int 21h
     ret
-mostrarDigito ENDP
+mostrardigito endp
           
-saltoLinea PROC 
+saltolinea proc 
     mov dl, 10
     mov ah, 2
     int 21h
@@ -127,4 +180,23 @@ saltoLinea PROC
     mov ah, 2
     int 21h
     ret
-saltoLinea ENDP
+saltolinea endp
+
+mensaje db 'bienvenido al cajero automatico', 10, 13, '$'
+opciones db '1. consultar saldo', 10, 13, '2. deposito', 10, 13, '3. retiro', 10, 13, '4. salir', 10, 13, 'seleccione una opcion: $'
+msg_saldo db 'opcion consultar saldo seleccionada.$'
+msg_deposito db 'opcion deposito seleccionada.$'
+msg_retiro db 'opcion retiro seleccionada.$'
+msg_saldo_actual db 'su saldo actual es: $'
+msg_deposito_exitoso db 'deposito realizado exitosamente!$'
+
+monto dw 0
+saldo dw 5000
+mill db 0
+centenas db 0
+decenas db 0
+unidades db 0 
+mensajeingreso db 'ingrese el monto a depositar (4 cifras): $'
+mensaje_numero db 'el numero es: $'
+
+end inicio
