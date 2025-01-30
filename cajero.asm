@@ -1,22 +1,33 @@
 org 100h
 
-main proc
-    ; Inicializar el programa
-    mov ah, 09h
-    lea dx, mensaje
-    int 21h
-    call menu_principal
-    ret
-main endp
+call bienvenida
+call menu_principal
+ret
 
-menu_principal proc
+bienvenida PROC
+    mov ah, 09h
+    lea dx, msg1
+    int 21h
+    mov ah, 09h
+    lea dx, msg2
+    int 21h
+    mov ah, 09h
+    lea dx, msg3
+    int 21h
+    mov ah, 09h
+    lea dx, msg4
+    int 21h 
+    ret
+bienvenida ENDP
+
+menu_principal PROC
     mov ah, 09h
     lea dx, opciones
     int 21h
     
     mov ah, 01h
     int 21h
-    sub al, '0'
+    sub al, 48
     mov bl, al
     
     cmp bl, 1
@@ -26,30 +37,30 @@ menu_principal proc
     cmp bl, 3
     je opcion_retiro
     cmp bl, 4
-    je opcion_salir
+    ret
     jmp menu_principal
     ret
-menu_principal endp
+menu_principal ENDP
 
-opcion_consultar proc
+opcion_consultar PROC
     call mostrar_saldo
     jmp menu_principal
     ret
-opcion_consultar endp
+opcion_consultar ENDP
 
-opcion_deposito proc
+opcion_deposito PROC
     call realizar_deposito
     jmp menu_principal
     ret
-opcion_deposito endp
+opcion_deposito ENDP
 
-opcion_retiro proc
+opcion_retiro PROC
     call mostrar_menu_retiro
     jmp menu_principal
     ret
-opcion_retiro endp
+opcion_retiro ENDP
 
-mostrar_menu_retiro proc
+mostrar_menu_retiro PROC
     call saltoLinea
     mov ah, 09h
     lea dx, menu_retiro
@@ -57,7 +68,7 @@ mostrar_menu_retiro proc
     
     mov ah, 01h
     int 21h
-    sub al, '0'
+    sub al, 48
     
     cmp al, 1
     je retiro_10
@@ -93,15 +104,9 @@ retiro_personalizado:
 hacer_retiro:
     call realizar_retiro
     ret
-mostrar_menu_retiro endp
+mostrar_menu_retiro ENDP
 
-opcion_salir proc
-    mov ah, 4ch
-    int 21h
-    ret
-opcion_salir endp
-
-mostrar_saldo proc
+mostrar_saldo PROC
     call saltolinea
     mov ah, 09h
     lea dx, msg_saldo_actual
@@ -109,9 +114,9 @@ mostrar_saldo proc
     call mostrarnumero
     call saltolinea
     ret
-mostrar_saldo endp
+mostrar_saldo ENDP
 
-realizar_deposito proc
+realizar_deposito PROC
     call saltolinea
     mov ah, 09h
     lea dx, mensajeingreso
@@ -120,20 +125,38 @@ realizar_deposito proc
     call ingresarnumero
     call calcularnumero
     
-    mov ax, monto
-    add saldo, ax
+    mov bx, saldo
+    
+    mov ax, saldo
+    add ax, monto
+    
+    cmp ax, 9999
+    jg deposito_muy_alto
+       
+    mov saldo, ax
     
     call saltolinea
     mov ah, 09h
     lea dx, msg_deposito_exitoso
     int 21h
+    jmp fin_deposito
     
+deposito_muy_alto:
+   
+    mov saldo, bx
+    
+    call saltolinea
+    mov ah, 09h
+    lea dx, msg_deposito_invalido 
+    int 21h
+    
+fin_deposito:
     call saltolinea
     call mostrar_saldo
     ret
-realizar_deposito endp
+realizar_deposito ENDP
 
-realizar_retiro proc  
+realizar_retiro PROC  
     call saltoLinea
     mov ah, 09h
     lea dx, msg_retiro
@@ -160,32 +183,82 @@ saldo_insuficiente:
     
 fin_retiro:
     ret
-realizar_retiro endp
+realizar_retiro ENDP
 
-ingresarnumero proc
-    call leerdigito
-    mov mill, al
+ingresarnumero PROC
+    mov mill, 0
+    mov centenas, 0
+    mov decenas, 0
+    mov unidades, 0
     
-    call leerdigito
-    mov centenas, al
+    mov ah, 1
+    int 21h
     
-    call leerdigito
-    mov decenas, al
+    cmp al, 13    ;Enter
+    je fin_ingreso
     
-    call leerdigito
+    sub al, 48
     mov unidades, al
     
+    mov ah, 1
+    int 21h
+    cmp al, 13
+    je mover_digitos_1
+    
+    sub al, 48
+    mov bl, unidades
+    mov decenas, bl
+    mov unidades, al
+    
+    mov ah, 1
+    int 21h
+    cmp al, 13
+    je mover_digitos_2
+    
+    sub al, 48
+    mov bl, decenas
+    mov centenas, bl
+    mov bl, unidades
+    mov decenas, bl
+    mov unidades, al
+    
+    mov ah, 1
+    int 21h
+    cmp al, 13
+    je mover_digitos_3
+    
+    sub al, 48
+    mov bl, centenas
+    mov mill, bl
+    mov bl, decenas
+    mov centenas, bl
+    mov bl, unidades
+    mov decenas, bl
+    mov unidades, al
+    
+    jmp fin_ingreso
+    
+mover_digitos_1:; Un solo digito ingresado
     ret
-ingresarnumero endp
+    
+mover_digitos_2:; Dos digitos ingresados
+    ret
+    
+mover_digitos_3:; Tres digitos ingresados
+    ret
+    
+fin_ingreso:
+    ret
+ingresarnumero ENDP
           
-leerdigito proc
+leerdigito PROC
     mov ah, 1
     int 21h
     sub al, 48    
     ret
-leerdigito endp
+leerdigito ENDP
 
-calcularnumero proc
+calcularnumero PROC
     xor ax, ax
     mov al, mill
     mov bx, 1000
@@ -210,9 +283,9 @@ calcularnumero proc
     
     mov monto, bx
     ret
-calcularnumero endp
+calcularnumero ENDP
            
-mostrarnumero proc
+mostrarnumero PROC
     mov ax, saldo
     
     mov dx, 0
@@ -242,16 +315,16 @@ mostrarnumero proc
     call mostrardigito
     
     ret
-mostrarnumero endp
+mostrarnumero ENDP
        
-mostrardigito proc
+mostrardigito PROC
     add dl, 48
     mov ah, 2
     int 21h
     ret
-mostrardigito endp
+mostrardigito ENDP
           
-saltolinea proc 
+saltolinea PROC 
     mov dl, 10
     mov ah, 2
     int 21h
@@ -260,10 +333,20 @@ saltolinea proc
     mov ah, 2
     int 21h
     ret
-saltolinea endp
+saltolinea ENDP
 
-; Variables y mensajes
-mensaje db 'bienvenido al cajero automatico', 10, 13, '$'
+msg1 db '+----------------------------------+', 10, 13, '$'
+msg2 db '|       Bienvenido al Cajero       |', 10, 13, '$'
+msg3 db '|           Automatico             |', 10, 13, '$'
+msg4 db '+----------------------------------+', 10, 13, '$'
+
+monto dw ?
+saldo dw 4000
+mill db ?
+centenas db ?
+decenas db ?
+unidades db ? 
+
 opciones db '1. consultar saldo', 10, 13, '2. deposito', 10, 13, '3. retiro', 10, 13, '4. salir', 10, 13, 'seleccione una opcion: $'
 menu_retiro db '1. Retirar 10 dolares', 10, 13, '2. Retirar 20 dolares', 10, 13, '3. Retirar 50 dolares', 10, 13, '4. Retirar 100 dolares', 10, 13, '5. Otro monto', 10, 13, 'Seleccione una opcion: $'
 msg_saldo db 'opcion consultar saldo seleccionada.$'
@@ -274,14 +357,6 @@ msg_deposito_exitoso db 'deposito realizado exitosamente!$'
 mensajeExito db 'Retiro exitoso. Nuevo saldo: $'
 mensajeError db 'Saldo insuficiente.$'
 mensajeFinal db 'Operacion finalizada.$'
-msg_ingreso_monto db 'Ingrese el monto a retirar (4 cifras): $'
-monto dw 0
-saldo dw 5000
-mill db 0
-centenas db 0
-decenas db 0
-unidades db 0 
-mensajeingreso db 'ingrese el monto a depositar (4 cifras): $'
-mensaje_numero db 'el numero es: $'
-
-end main
+msg_ingreso_monto db 'Ingrese el monto a retirar: $'
+mensajeingreso db 'ingrese el monto a depositar: $'
+msg_deposito_invalido db 'El deposito no puede realizarse. El monto resultante seria muy elevado.$'
